@@ -1,0 +1,18 @@
+# Compiled files
+*.o
+*.bin
+*.iso
+
+# Build folders
+iso/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ZIP files (keep only the official one)
+# TFD-OS.zip is tracked manually
