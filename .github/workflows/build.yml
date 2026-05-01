@@ -9,20 +9,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Install Dependencies
         run: sudo apt update && sudo apt install -y nasm xorriso grub-pc-bin gcc-multilib mtools
+      
       - name: Assemble Bootloader
         run: nasm -f elf32 boot.s -o boot.o
+      
       - name: Compile Kernel
         run: gcc -m32 -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -w -O2 -c kernel.c -o kernel.o
+      
       - name: Link Kernel
         run: ld -m elf_i386 -T linker.ld -o kernel.bin boot.o kernel.o
-      - name: Create ISO
+      
+      - name: Verify Files
+        run: |
+          echo "=== Checking kernel.bin ==="
+          ls -la kernel.bin
+          file kernel.bin
+          echo "=== Checking multiboot header ==="
+          grub-file --is-x86-multiboot kernel.bin && echo "VALID MULTIBOOT" || echo "NOT MULTIBOOT!"
+      
+      - name: Create ISO Structure
         run: |
           mkdir -p iso/boot/grub
           cp kernel.bin iso/boot/
           cp grub.cfg iso/boot/grub/
-          grub-mkrescue -o TFD-OS-v1.0.iso iso
+          echo "=== ISO structure ==="
+          find iso
+      
+      - name: Build ISO
+        run: grub-mkrescue -o TFD-OS-v1.0.iso iso
+      
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
