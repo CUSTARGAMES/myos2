@@ -1,0 +1,30 @@
+name: Build TFD OS v1.0
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Dependencies
+        run: sudo apt update && sudo apt install -y nasm xorriso grub-pc-bin gcc-multilib mtools
+      - name: Assemble Bootloader
+        run: nasm -f elf32 boot.s -o boot.o
+      - name: Compile Kernel
+        run: gcc -m32 -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -w -O2 -c kernel.c -o kernel.o
+      - name: Link Kernel
+        run: ld -m elf_i386 -T linker.ld -o kernel.bin boot.o kernel.o
+      - name: Create ISO
+        run: |
+          mkdir -p iso/boot/grub
+          cp kernel.bin iso/boot/
+          cp grub.cfg iso/boot/grub/
+          grub-mkrescue -o TFD-OS-v1.0.iso iso
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TFD-OS-v1.0
+          path: TFD-OS-v1.0.iso
