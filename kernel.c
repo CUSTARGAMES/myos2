@@ -1,5 +1,12 @@
 #include <stdint.h>
 
+/* ===================================================================
+   TFD OS v1.0 "Foxy" - Complete Text-Based Operating System (72 cmds)
+   By Sadman | 2026 | GPL v3 License
+   ===================================================================
+   FIX: Moved string helpers to the top before fsinit
+   =================================================================== */
+
 /* ============ VGA TEXT MODE ============ */
 static volatile uint16_t *const vga = (uint16_t *)0xB8000;
 #define COLS 80
@@ -30,6 +37,13 @@ static inline void outb(uint16_t p, uint8_t v) { __asm__ volatile("outb %0,%1"::
 static inline uint8_t inb(uint16_t p) { uint8_t r; __asm__ volatile("inb %1,%0":"=a"(r):"Nd"(p)); return r; }
 static inline void iowait(void) { outb(0x80,0); }
 
+/* ============ STRING HELPERS (MOVED TO TOP) ============ */
+static int str_len(const char*s){int n=0;while(s[n])n++;return n;}
+static int str_cmp(const char*a,const char*b){while(*a&&*b&&*a==*b){a++;b++;}return*a-*b;}
+static void str_cpy(char*d,const char*s){while(*s)*d++=*s++;*d=0;}
+static int stoi(const char*s){int n=0;while(*s>='0'&&*s<='9'){n=n*10+(*s-'0');s++;}return n;}
+static void itos(int n,char*b){int i=0;if(n==0){b[0]='0';b[1]=0;return;}while(n>0){b[i++]='0'+(n%10);n/=10;}b[i]=0;for(int j=0;j<i/2;j++){char t=b[j];b[j]=b[i-1-j];b[i-1-j]=t;}}
+
 /* ============ FAKE FILE SYSTEM ============ */
 #define MAXF 100
 static char fn[MAXF][32];
@@ -50,13 +64,6 @@ static char user[20]="sadman", pc[20]="TFD-PC", pass[20]="";
 static int haspw=0, clen=0, hcnt=0, inst=0, pmode=0;
 static char cmd[256], hist[50][256], last[256]="", idisk[20]="", curdir[50]="/";
 static uint32_t upt=0;
-
-/* ============ STRING HELPERS ============ */
-static int str_len(const char*s){int n=0;while(s[n])n++;return n;}
-static int str_cmp(const char*a,const char*b){while(*a&&*b&&*a==*b){a++;b++;}return*a-*b;}
-static void str_cpy(char*d,const char*s){while(*s)*d++=*s++;*d=0;}
-static int stoi(const char*s){int n=0;while(*s>='0'&&*s<='9'){n=n*10+(*s-'0');s++;}return n;}
-static void itos(int n,char*b){int i=0;if(n==0){b[0]='0';b[1]=0;return;}while(n>0){b[i++]='0'+(n%10);n/=10;}b[i]=0;for(int j=0;j<i/2;j++){char t=b[j];b[j]=b[i-1-j];b[i-1-j]=t;}}
 
 /* ============ SCREEN ============ */
 static void setcur(int x,int y){uint16_t p=y*COLS+x;outb(0x3D4,0x0F);outb(0x3D5,(uint8_t)(p&0xFF));outb(0x3D4,0x0E);outb(0x3D5,(uint8_t)((p>>8)&0xFF));cx=x;cy=y;}
@@ -118,9 +125,7 @@ static void game_snake(void){
     else prtn("Snake exited.",YELLOW);
 }
 
-/* ===========================================================
-   COMMAND EXECUTION - ALL 72 COMMANDS
-   =========================================================== */
+/* ============ COMMAND EXECUTION ============ */
 static void exec(const char*c){
     if(c[0]==0)return;
     if(hcnt<50)str_cpy(hist[hcnt++],c);
