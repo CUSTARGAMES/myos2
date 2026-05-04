@@ -85,15 +85,32 @@ static int hask(void){return inb(0x64)&1;}
 
 /* ============ FOXY BLACKOUT (Red Screen of Death) ============ */
 static void foxy_blackout(void) {
-    for (int i = 0; i < COLS * ROWS; i++) vga[i] = (uint16_t)' ' | ((uint16_t)RED << 8);
-    prtat(8, 6,  "10110101 00101110 11100101 00011101 10101100 01001110", LRED);
-    prtat(8, 8,  "01001110 10110011 00101101 11001010 01011100 11100101", LRED);
-    prtat(8, 10, "11100101 00011101 10101100 01001110 10110011 00101101", LRED);
-    prtat(8, 12, "00101101 11001010 01011100 11100101 00011101 10101100", LRED);
-    prtat(8, 14, "10110011 00101101 11001010 01011100 11100101 00011101", LRED);
+    /* Fill entire screen with RED background, WHITE text */
+    for (int i = 0; i < COLS * ROWS; i++) {
+        vga[i] = (uint16_t)' ' | ((uint16_t)(RED << 4) | (WHITE & 0x0F) << 8);
+    }
+    
+    /* Binary rain on red background */
+    prtat(8, 4,  "10110101 00101110 11100101 00011101 10101100 01001110", LRED);
+    prtat(8, 6,  "01001110 10110011 00101101 11001010 01011100 11100101", LRED);
+    prtat(8, 8,  "11100101 00011101 10101100 01001110 10110011 00101101", LRED);
+    prtat(8, 10, "00101101 11001010 01011100 11100101 00011101 10101100", LRED);
+    prtat(8, 12, "10110011 00101101 11001010 01011100 11100101 00011101", LRED);
+    prtat(8, 14, "01001110 10110011 00101101 11001010 01011100 11100101", LRED);
+    
+    /* System halted message */
     prtat(22, 17, "SYSTEM HALTED", WHITE);
-    prtat(18, 19, "Rebooting in 3 seconds...", LRED);
-    for (volatile int d = 0; d < 5000000; d++);
+    prtat(16, 19, ">> Press ENTER to reboot <<", YELLOW);
+    
+    /* WAIT FOR USER TO PRESS ENTER */
+    while (1) {
+        if (hask()) {
+            char c = getk();
+            if (c == '\n') break;
+        }
+    }
+    
+    /* Reboot */
     outb(0x64, 0xFE);
 }
 
@@ -258,8 +275,12 @@ static void exec(const char*c){
     else {
         prt("?: ",RED);prtn(c,RED);
         invalid_count++;
-        if (invalid_count > 3 || str_len(c) > 30) foxy_blackout();
-        else prtn("Type 'help'",YELLOW);
+        if (invalid_count > 3 || str_len(c) > 40) {
+            foxy_blackout();
+            invalid_count = 0; /* Reset after blackout */
+        } else {
+            prtn("Type 'help'",YELLOW);
+        }
     }
 }
 
