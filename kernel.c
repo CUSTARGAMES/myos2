@@ -3,8 +3,7 @@
 /* ===================================================================
    TFD OS v1.0 "Foxy" - Complete Text-Based Operating System (72 cmds)
    By Sadman | 2026 | GPL v3 License
-   ===================================================================
-   FIX: Moved string helpers to the top before fsinit
+   INCLUDES: FOXY BLACKOUT (Red Screen of Death)
    =================================================================== */
 
 /* ============ VGA TEXT MODE ============ */
@@ -61,7 +60,7 @@ static void fsinit(void) {
 
 /* ============ SYSTEM STATE ============ */
 static char user[20]="sadman", pc[20]="TFD-PC", pass[20]="";
-static int haspw=0, clen=0, hcnt=0, inst=0, pmode=0;
+static int haspw=0, clen=0, hcnt=0, inst=0, pmode=0, invalid_count=0;
 static char cmd[256], hist[50][256], last[256]="", idisk[20]="", curdir[50]="/";
 static uint32_t upt=0;
 
@@ -83,6 +82,20 @@ static void kdata(void){while(!(inb(0x64)&1))iowait();}
 static char sctoasc(uint8_t sc){switch(sc){case 0x0E:return'\b';case 0x1C:return'\n';case 0x39:return' ';case 0x02:return'1';case 0x03:return'2';case 0x04:return'3';case 0x05:return'4';case 0x06:return'5';case 0x07:return'6';case 0x08:return'7';case 0x09:return'8';case 0x0A:return'9';case 0x0B:return'0';case 0x0C:return'-';case 0x0D:return'=';case 0x10:return'q';case 0x11:return'w';case 0x12:return'e';case 0x13:return'r';case 0x14:return't';case 0x15:return'y';case 0x16:return'u';case 0x17:return'i';case 0x18:return'o';case 0x19:return'p';case 0x1A:return'[';case 0x1B:return']';case 0x1E:return'a';case 0x1F:return's';case 0x20:return'd';case 0x21:return'f';case 0x22:return'g';case 0x23:return'h';case 0x24:return'j';case 0x25:return'k';case 0x26:return'l';case 0x27:return';';case 0x28:return'\'';case 0x29:return'`';case 0x2B:return'\\';case 0x2C:return'z';case 0x2D:return'x';case 0x2E:return'c';case 0x2F:return'v';case 0x30:return'b';case 0x31:return'n';case 0x32:return'm';case 0x33:return',';case 0x34:return'.';case 0x35:return'/';case 0x37:return'*';default:return 0;}}
 static char getk(void){kdata();return sctoasc(inb(0x60));}
 static int hask(void){return inb(0x64)&1;}
+
+/* ============ FOXY BLACKOUT (Red Screen of Death) ============ */
+static void foxy_blackout(void) {
+    for (int i = 0; i < COLS * ROWS; i++) vga[i] = (uint16_t)' ' | ((uint16_t)RED << 8);
+    prtat(8, 6,  "10110101 00101110 11100101 00011101 10101100 01001110", LRED);
+    prtat(8, 8,  "01001110 10110011 00101101 11001010 01011100 11100101", LRED);
+    prtat(8, 10, "11100101 00011101 10101100 01001110 10110011 00101101", LRED);
+    prtat(8, 12, "00101101 11001010 01011100 11100101 00011101 10101100", LRED);
+    prtat(8, 14, "10110011 00101101 11001010 01011100 11100101 00011101", LRED);
+    prtat(22, 17, "SYSTEM HALTED", WHITE);
+    prtat(18, 19, "Rebooting in 3 seconds...", LRED);
+    for (volatile int d = 0; d < 5000000; d++);
+    outb(0x64, 0xFE);
+}
 
 /* ============ SNAKE GAME ============ */
 static int sx[200],sy[200],snl,sdir,sfx,sfy,ssc,sgo;
@@ -242,7 +255,12 @@ static void exec(const char*c){
         }
     }
     else if(str_cmp(cm,"uninstall")==0){if(inst){prt("Remove? (y/n): ",RED);if(getk()=='y'){inst=0;idisk[0]=0;prtn("Removed.",GREEN);}}else prtn("Not installed.",YELLOW);}
-    else {prt("?: ",RED);prtn(c,RED);prtn("Type 'help'",YELLOW);}
+    else {
+        prt("?: ",RED);prtn(c,RED);
+        invalid_count++;
+        if (invalid_count > 3 || str_len(c) > 30) foxy_blackout();
+        else prtn("Type 'help'",YELLOW);
+    }
 }
 
 /* ============ BOOT MENU ============ */
