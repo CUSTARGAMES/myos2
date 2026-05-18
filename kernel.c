@@ -85,6 +85,14 @@ static void prtat(int x, int y, const char *s, uint8_t c) {
         s++; x++;
     }
 }
+static void prompt(void) { 
+    prt(prompt_text, GREEN); 
+    prt("(", GREEN); 
+    prt(user, WHITE); 
+    prt("@", LGRAY); 
+    prt(host, WHITE); 
+    prt("):$ ", GREEN); 
+}
 
 /* ----- Keyboard ----- */
 static void kwait(void) { while(inb(0x64)&2) iowait(); }
@@ -235,7 +243,7 @@ static int ne2000_recv(char *buf) {
 
 /* ==================== GAMES ==================== */
 
-/* Snake (full) */
+/* Snake */
 static int sx[200],sy[200],snl,sdir,sfx,sfy,ssc,sgo;
 static void snake(void) {
     snl=3; sdir=0; ssc=0; sgo=0;
@@ -410,7 +418,6 @@ static void lucky7(void) {
         else if(c=='-'){if(bet>10)bet-=10;}
         else if(c=='\n'){
             int s1=inb(0x40)%6, s2=inb(0x40)%6, s3=inb(0x40)%6;
-            prtat(26,7,"   ",WHITE);
             char line[20];
             line[0]='[';line[1]=symbols[s1];line[2]=']';line[3]=' ';line[4]='[';line[5]=symbols[s2];line[6]=']';line[7]=' ';line[8]='[';line[9]=symbols[s3];line[10]=']';line[11]=0;
             prtat(26,7,line,WHITE);
@@ -532,7 +539,6 @@ static void foxy_blackout(void) {
     prtat(8,10,"00101101 11001010 01011100 11100101",LRED);
     prtat(22,17,"SYSTEM HALTED",WHITE);
     prtat(16,19,">> Press ENTER to reboot <<",YELLOW);
-    /* annoying beep loop */
     while(1){
         beep(800,200);
         if(hask()){ if(getk()=='\n') break; }
@@ -626,7 +632,7 @@ static void exec(const char *c) {
     else if(strcmp(cm,"ls")==0||strcmp(cm,"dir")==0) {
         for(int i=0;i<fc;i++) { prt(fdir[i]?"[DIR]  ":"[FILE] ",fdir[i]?YELLOW:WHITE); prtn(fn[i],WHITE); }
     }
-    else if(strcmp(cm,"cd")==0) { /* simplified */ prtn("-> /",GREEN); }
+    else if(strcmp(cm,"cd")==0) { prtn("-> /",GREEN); }
     else if(strcmp(cm,"pwd")==0) prtn(curdir,WHITE);
     else if(strcmp(cm,"mkdir")==0&&arg[0]&&fc<MAXF) {
         strcpy(fn[fc],arg); fdir[fc]=1; fs[fc]=0; fc++; prtn("Created.",GREEN);
@@ -730,7 +736,7 @@ static void boot_menu(void) {
     prtat(10,7,"║                                              ║",CYAN);
     prtat(10,8,"║        TinyFoxyDOS v2.0 (c) 2026            ║",WHITE);
     prtat(10,9,"║         Command-Line Operating System        ║",LGRAY);
-    prtat(10,10,"║        by Sadman from foxydox software      ║",LGRAY);
+    prtat(10,10,"║              by Sadman                       ║",LGRAY);
     prtat(10,11,"║                                              ║",CYAN);
     prtat(10,12,"║   ═══════════════════════════════════════    ║",CYAN);
     prtat(10,13,"║   [1] Boot TFD OS v2.0                      ║",GREEN);
@@ -753,6 +759,18 @@ static void setup_wizard(void) {
     prtn("",0); prtn("Setup complete.",GREEN);
     boot_melody();
     for(volatile int d=0;d<200000;d++); hidecur();
+}
+
+/* ==================== CLOCK UPDATE ==================== */
+static void update_clock(void) {
+    uint8_t s = bcd2bin(cmos_read(0x00));
+    uint8_t m = bcd2bin(cmos_read(0x02));
+    uint8_t h = bcd2bin(cmos_read(0x04));
+    char buf[9];
+    buf[0]='0'+h/10;buf[1]='0'+h%10;buf[2]=':';
+    buf[3]='0'+m/10;buf[4]='0'+m%10;buf[5]=':';
+    buf[6]='0'+s/10;buf[7]='0'+s%10;buf[8]=0;
+    prtat(71,0,buf,GREEN);
 }
 
 /* ==================== MAIN ==================== */
