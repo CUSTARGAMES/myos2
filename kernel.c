@@ -43,7 +43,7 @@ static char *strcpy(char *d, const char *s) { char *r=d; while(*s)*d++=*s++; *d=
 static int stoi(const char *s) { int n=0; while(*s>='0'&&*s<='9'){n=n*10+(*s-'0');s++;} return n; }
 static void itos(int n, char *b) { int i=0; if(n==0){b[0]='0';b[1]=0;return;} while(n>0){b[i++]='0'+(n%10);n/=10;} b[i]=0; for(int j=0;j<i/2;j++){char t=b[j];b[j]=b[i-1-j];b[i-1-j]=t;} }
 
-/* ----- Screen Functions ----- */
+/* ----- Screen Functions (FIXED) ----- */
 static void setcur(int x, int y) {
     uint16_t p = y * COLS + x;
     outb(0x3D4,0x0F); outb(0x3D5,(uint8_t)(p&0xFF));
@@ -52,12 +52,39 @@ static void setcur(int x, int y) {
 }
 static void hidecur(void) { outb(0x3D4,0x0A); outb(0x3D5,0x20); }
 static void showcur(void) { outb(0x3D4,0x0A); outb(0x3D5,0x0E); outb(0x3D4,0x0B); outb(0x3D5,0x0F); }
-static void cls(void) { for(int i=0;i<COLS*ROWS;i++) vga[i]=(uint16_t)' '|((uint16_t)LGRAY<<8); cx=0;cy=0; }
-static void scroll(void) { for(int y=0;y<ROWS-1;y++) for(int x=0;x<COLS;x++) vga[y*COLS+x]=vga[(y+1)*COLS+x]; for(int x=0;x<COLS;x++) vga[(ROWS-1)*COLS+x]=(uint16_t)' '|((uint16_t)LGRAY<<8); }
-static void putc(char c) { if(c=='\n'){cx=0;cy++;if(cy>=ROWS){scroll();cy=ROWS-1;}} else if(c=='\b'){if(cx>0){cx--;vga[cy*COLS+cx]=(uint16_t)' '|((uint16_t)LGRAY<<8);}} else { vga[cy*COLS+cx]=(uint16_t)c|((uint16_t)tc<<8); cx++; if(cx>=COLS){cx=0;cy++;if(cy>=ROWS){scroll();cy=ROWS-1;}} } setcur(cx,cy); }
+static void cls(void) {
+    for(int i=0;i<COLS*ROWS;i++) vga[i]=(uint16_t)' '|((uint16_t)LGRAY<<8);
+    cx=0;cy=0;
+}
+static void scroll(void) {
+    for(int y=0;y<ROWS-1;y++)
+        for(int x=0;x<COLS;x++)
+            vga[y*COLS+x] = vga[(y+1)*COLS+x];
+    for(int x=0;x<COLS;x++)
+        vga[(ROWS-1)*COLS+x] = (uint16_t)' ' | ((uint16_t)LGRAY<<8);
+}
+static void putc(char c) {
+    if(c=='\n') {
+        cx=0; cy++;
+        if(cy>=ROWS) { scroll(); cy=ROWS-1; }
+    } else if(c=='\b') {
+        if(cx>0) { cx--; vga[cy*COLS+cx]=(uint16_t)' '|((uint16_t)LGRAY<<8); }
+    } else {
+        vga[cy*COLS+cx] = (uint16_t)c | ((uint16_t)tc<<8);
+        cx++;
+        if(cx>=COLS) { cx=0; cy++; if(cy>=ROWS){scroll();cy=ROWS-1;} }
+    }
+    setcur(cx,cy);
+}
 static void prt(const char *s, uint8_t c) { tc=c; while(*s) putc(*s++); }
 static void prtn(const char *s, uint8_t c) { prt(s,c); putc('\n'); }
-static void prtat(int x, int y, const char *s, uint8_t c) { while(*s){ if(x>=0&&x<COLS&&y>=0&&y<ROWS) vga[y*COLS+x]=(uint16_t)(*s)|((uint16_t)c<<8); s++; x++; } }
+static void prtat(int x, int y, const char *s, uint8_t c) {
+    while(*s) {
+        if(x>=0 && x<COLS && y>=0 && y<ROWS)
+            vga[y*COLS+x] = (uint16_t)(*s) | ((uint16_t)c<<8);
+        s++; x++;
+    }
+}
 
 /* ----- Keyboard ----- */
 static void kwait(void) { while(inb(0x64)&2) iowait(); }
