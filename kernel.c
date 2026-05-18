@@ -30,20 +30,28 @@ static uint8_t tc = 0x0F;
 #define YELLOW  0x0E
 #define WHITE   0x0F
 
+/* ----- System State (must be before any functions that use them) ----- */
+static char user[20]="sadman", host[20]="TFD-PC", pass[20]="";
+static int haspw, clen, hcnt, inst, invalid_cnt, pmode;
+static char cmd[256], hist[50][256], last[256], idisk[20], curdir[50]="/";
+static uint32_t upt;
+static int logo_style=1;
+static char prompt_text[10]="TFD~";
+
 /* ----- I/O Ports ----- */
 static inline void outb(uint16_t p, uint8_t v) { __asm__ volatile("outb %0,%1"::"a"(v),"Nd"(p)); }
 static inline uint8_t inb(uint16_t p) { uint8_t r; __asm__ volatile("inb %1,%0":"=a"(r):"Nd"(p)); return r; }
 static inline void iowait(void) { outb(0x80,0); }
 static inline void outw(uint16_t p, uint16_t v) { __asm__ volatile("outw %0,%1"::"a"(v),"Nd"(p)); }
 
-/* ----- String Helpers (must be first) ----- */
+/* ----- String Helpers ----- */
 static int strlen(const char *s) { int n=0; while(s[n])n++; return n; }
 static int strcmp(const char *a, const char *b) { while(*a&&*b&&*a==*b){a++;b++;} return *a-*b; }
 static char *strcpy(char *d, const char *s) { char *r=d; while(*s)*d++=*s++; *d=0; return r; }
 static int stoi(const char *s) { int n=0; while(*s>='0'&&*s<='9'){n=n*10+(*s-'0');s++;} return n; }
 static void itos(int n, char *b) { int i=0; if(n==0){b[0]='0';b[1]=0;return;} while(n>0){b[i++]='0'+(n%10);n/=10;} b[i]=0; for(int j=0;j<i/2;j++){char t=b[j];b[j]=b[i-1-j];b[i-1-j]=t;} }
 
-/* ----- Screen Functions (FIXED) ----- */
+/* ----- Screen Functions ----- */
 static void setcur(int x, int y) {
     uint16_t p = y * COLS + x;
     outb(0x3D4,0x0F); outb(0x3D5,(uint8_t)(p&0xFF));
@@ -131,14 +139,6 @@ static void vfs_init(void) {
     strcpy(fn[fc],"games"); fdir[fc]=1; fc++;
     strcpy(fn[fc],"bin"); fdir[fc]=1; fc++;
 }
-
-/* ----- System State ----- */
-static char user[20]="sadman", host[20]="TFD-PC", pass[20]="";
-static int haspw, clen, hcnt, inst, invalid_cnt, pmode;
-static char cmd[256], hist[50][256], last[256], idisk[20], curdir[50]="/";
-static uint32_t upt;
-static int logo_style=1;
-static char prompt_text[10]="TFD~";
 
 /* ----- Mouse Driver ----- */
 static int ms_x=40, ms_y=12, ms_btn, ms_clicks, ms_last;
