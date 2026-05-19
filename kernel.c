@@ -93,14 +93,7 @@ static void prtat(int x, int y, const char *s, uint8_t c) {
         s++; x++;
     }
 }
-static void prompt(void) { 
-    prt(prompt_text, GREEN); 
-    prt("(", GREEN); 
-    prt(user, WHITE); 
-    prt("@", LGRAY); 
-    prt(host, WHITE); 
-    prt("):$ ", GREEN); 
-}
+static void prompt(void) { prt(prompt_text, GREEN); prt("(", GREEN); prt(user, WHITE); prt("@", LGRAY); prt(host, WHITE); prt("):$ ", GREEN); }
 
 /* ----- Keyboard ----- */
 static void kwait(void) { while(inb(0x64)&2) iowait(); }
